@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "TouchPin.h"
+#include "InterruptGuard.h"
 
 const int CALIBRATION_RUNS = 16,
           MEASURE_RUNS = 4
@@ -25,15 +26,20 @@ int TouchPin::_read()
 {
 	unsigned int count = 0;
 
-	pinMode( _pin, OUTPUT );
-	digitalWrite( _pin, 1 );
+	{
+		InterruptGuard g();
 
-	pinMode( _pin, INPUT );
+		pinMode( _pin, OUTPUT );
+		digitalWrite( _pin, 1 );
 
-	while( digitalRead( _pin ) ){
+		pinMode( _pin, INPUT );
 
-		count++;
-	}
+		while( digitalRead( _pin ) ){
+
+			count++;
+		}
+
+	} 
 
 	return count;
 }
