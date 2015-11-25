@@ -2,8 +2,10 @@
 #include "TouchPin.h"
 #include "InterruptGuard.h"
 
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
 #define SCALE( offset ) (offset)
-#define HYSTERESIS( offset ) ((offset)/2)
+#define HYSTERESIS( offset ) MAX( (offset)/2, 5 )
 
 const int CALIBRATION_RUNS = 16,
           MEASURE_RUNS = 4
@@ -47,6 +49,8 @@ int TouchPin::_read()
 	return count;
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("unroll-loops")
 int TouchPin::calibrate()
 {
 	register int i;
@@ -60,6 +64,7 @@ int TouchPin::calibrate()
 	}
 
 	offset = sum / CALIBRATION_RUNS;
+
 	_offset = offset;
 	_hysteresis = HYSTERESIS( offset );
 	_scale = SCALE( offset );
@@ -76,6 +81,7 @@ int TouchPin::read()
 
 		result += _read() - _offset;
 	}
+
 	result /= MEASURE_RUNS;
 
 	if( result < 0 ) result = 0;
@@ -84,6 +90,7 @@ int TouchPin::read()
 
 	return result;
 }
+#pragma GCC pop_options
 
 long TouchPin::_touchTime()
 {
@@ -106,22 +113,30 @@ long TouchPin::_touchTime()
 
 bool TouchPin::isTouch()
 {
-	return read() >= _hysteresis;;
+	int value = read();
+
+	return value >= _hysteresis;
 }
 
 bool TouchPin::isClick()
 {
-	return _touchTime() < -MIN_CLICK;
+	long touchTime = _touchTime();
+
+	return touchTime < -MIN_CLICK;
 }
 
 bool TouchPin::isHold()
 {
-	return _touchTime() > MIN_HOLD;
+	long touchTime = _touchTime();
+
+	return touchTime > MIN_HOLD;
 }
 
 bool TouchPin::isPush()
 {
-	if( _touchTime() > MIN_PUSH ) {
+	long touchTime = _touchTime();
+
+	if( touchTime > MIN_PUSH ) {
 		if( ! _pushed ){
 			_pushed = true;
 			return true;
@@ -139,5 +154,10 @@ int TouchPin::strength()
 
 void TouchPin::printInfo()
 {
-	Serial.printf( "Pin: %d, Offset: %d, Hysteresis: %d\n", _pin, _offset, _hyseresis );
-{
+	Serial.print( "Pin: " );
+	Serial.print( _pin );
+	Serial.print( "Offset: " );
+	Serial.print( _offset );
+	Serial.print( "Hysteresis: " );
+	Serial.println( _hysteresis );
+}
