@@ -46,13 +46,26 @@ class TouchPin
 		 */
 		bool isClick();
 
+		/**
+		 * Return strength of last touch.
+		 *
+		 * This is the value which would have been returned by last read scaled
+		 * by a factor depending on calibration.
+		 */
+		int strength();
+
 
 	private:
+	
 		unsigned long _touchStart;
+
 		int _pin;
 		int _offset;
 		int _hysteresis;
-		boolean _pushed;
+		int _scale;
+		int _lastCount;
+		bool _pushed;
+
 		int _read();
 		long _touchTime();
 };

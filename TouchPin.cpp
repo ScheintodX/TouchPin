@@ -2,6 +2,9 @@
 #include "TouchPin.h"
 #include "InterruptGuard.h"
 
+#define SCALE( offset ) (offset)
+#define HYSTERESIS( offset ) ((offset)/2)
+
 const int CALIBRATION_RUNS = 16,
           MEASURE_RUNS = 4
 		  ;
@@ -24,7 +27,7 @@ TouchPin::TouchPin( int pin )
 
 int TouchPin::_read()
 {
-	unsigned int count = 0;
+	register int count = 0;
 
 	{
 		InterruptGuard g();
@@ -44,11 +47,49 @@ int TouchPin::_read()
 	return count;
 }
 
-long TouchPin::_touchTime() {
+int TouchPin::calibrate()
+{
+	register int i;
 
+	int sum = 0,
+		offset;
+
+	for( i = 0; i < CALIBRATION_RUNS; i++ ) {
+
+		sum += _read();
+	}
+
+	offset = sum / CALIBRATION_RUNS;
+	_offset = offset;
+	_hysteresis = HYSTERESIS( offset );
+	_scale = SCALE( offset );
+
+	return _offset;
+}
+
+int TouchPin::read()
+{
+	register int i;
+	int result=0;
+	
+	for( i=0; i<MEASURE_RUNS; i++ ) {
+
+		result += _read() - _offset;
+	}
+	result /= MEASURE_RUNS;
+
+	if( result < 0 ) result = 0;
+
+	if( result ) _lastCount = result;
+
+	return result;
+}
+
+long TouchPin::_touchTime()
+{
 	unsigned long now = millis(),
 	              result = 0
-				  ;;
+				  ;
 	bool touching;
 
 	if( _touchStart ) {
@@ -77,6 +118,7 @@ bool TouchPin::isHold()
 {
 	return _touchTime() > MIN_HOLD;
 }
+
 bool TouchPin::isPush()
 {
 	if( _touchTime() > MIN_PUSH ) {
@@ -90,32 +132,7 @@ bool TouchPin::isPush()
 	return false;
 }
 
-int TouchPin::read()
+int TouchPin::strength()
 {
-	int result=0, i;
-	
-	for( i=0; i<MEASURE_RUNS; i++ ) {
-		result += _read() - _offset;
-	}
-	result /= MEASURE_RUNS;
-
-	if( result < 0 ) result = 0;
-
-	return result;
-}
-
-int TouchPin::calibrate()
-{
-	int i;
-	int sum = 0;
-
-	for( i = 0; i < CALIBRATION_RUNS; i++ ) {
-
-		sum += _read();
-	}
-
-	_offset = sum / CALIBRATION_RUNS;
-	_hysteresis = _offset / 2;
-
-	return _offset;
+	return _lastCount / _scale;
 }
