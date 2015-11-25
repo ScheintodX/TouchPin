@@ -140,4 +140,4 @@ int TouchPin::strength()
 void TouchPin::printInfo()
 {
 	Serial.printf( "Pin: %d, Offset: %d, Hysteresis: %d\n", _pin, _offset, _hyseresis );
-}
+{

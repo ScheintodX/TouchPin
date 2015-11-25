@@ -60,7 +60,6 @@ class TouchPin
 		void printInfo();
 
 
-
 	private:
 	
 		unsigned long _touchStart;
